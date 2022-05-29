@@ -35,6 +35,8 @@ window.addEventListener("resize", () => {
 // // boxMesh.rotation.set(40, 0, 40);
 // scene.add(boxMesh);
 
+
+
 // const boxGeometry = new THREE.BoxGeometry(2, 2, 2);
 const boxGeometry = new THREE.TorusGeometry( 2, 0.7, 16, 50 );
 var geo = new THREE.EdgesGeometry( boxGeometry ); // or WireframeGeometry( geometry )
@@ -42,6 +44,13 @@ var mat = new THREE.LineBasicMaterial( { color: 0xffffff, linewidth: 1 } );
 var boxMesh = new THREE.LineSegments( geo, mat );
 // boxMesh.rotation.set(40, 0, 40);
 scene.add( boxMesh );
+
+// const geometry = new THREE.ParametricGeometry( THREE.ParametricGeometries.klein, 25, 25 );
+// const material = new THREE.MeshBasicMaterial( { color: 0x00ff00 } );
+// const klein = new THREE.Mesh( geometry, material );
+// scene.add( klein );
+
+
 
 // // simple light
 // const light = new THREE.PointLight(0xFFFFFF, 1, 100);
@@ -78,7 +87,9 @@ const render_scene = function() {
   // Constantly rotate cube
   // scene.rotation.z -= 0.005;
   // scene.rotation.x -= 0.01;
-  boxMesh.rotation.y += 0.01;
+
+  // rotate
+  // boxMesh.rotation.y += 0.01;
 
   renderer.render(scene, camera);
 }
