@@ -9,14 +9,25 @@ import { OrbitControls } from 'https://unpkg.com/three@0.140.2/examples/jsm/cont
 const scene = new THREE.Scene();
 
 // camera
-const camera = new THREE.PerspectiveCamera(30, window.innerWidth / window.innerHeight, 0.6, 1200);
-// camera.position.z = 7;
-camera.position.set(-20, 30, 20)
-// camera.position.x = 7;
+// const camera = new THREE.PerspectiveCamera(30, window.innerWidth / window.innerHeight, 0.6, 1200);
+const aspect = window.innerWidth / window.innerHeight;
+const FRUSTRUM_SIZE = 20;
+const camera = new THREE.OrthographicCamera(
+  FRUSTRUM_SIZE * aspect / - 2, 
+  FRUSTRUM_SIZE * aspect / 2, 
+  FRUSTRUM_SIZE / 2, 
+  FRUSTRUM_SIZE / - 2, 
+  1, 
+  1000 
+);
+
+// camera.position.set(-20, 30, 20)
+camera.position.set(50, 30, 20);
+
 
 // renderer
 const renderer = new THREE.WebGLRenderer({antialias: true});
-renderer.setClearColor("#233143");
+renderer.setClearColor("#1a1c1b");
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
@@ -24,10 +35,24 @@ const controls = new OrbitControls( camera, renderer.domElement );
 controls.update();
 
 
+// helpers
+const ADJUST_VISUALLY = 3;
+const axesHelper = new THREE.AxesHelper( 2 );
+axesHelper.position.set(0, 3, 0);
+scene.add( axesHelper );
+
+
+
+// listeners
 // respond to resizing
 window.addEventListener("resize", () => {
   renderer.setSize(window.innerWidth, window.innerHeight);
-  camera.aspect = window.innerWidth / window.innerHeight;
+  const aspect = window.innerWidth / window.innerHeight;
+  camera.left = FRUSTRUM_SIZE * aspect / - 2;
+  camera.right = FRUSTRUM_SIZE * aspect / 2;
+  camera.top = FRUSTRUM_SIZE / 2;
+  camera.bottom = FRUSTRUM_SIZE / - 2;
+  // camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
 })
 
@@ -61,67 +86,120 @@ window.addEventListener("resize", () => {
 
 
 
+// // needs to accept and modify a Vector3 instead of returning a new one??
+// // look at constructor https://github.com/mrdoob/three.js/blob/master/examples/jsm/geometries/ParametricGeometry.js
+// const radialWave = function(u, v, target) {
+//   const r = 50;
+  
+//   const x = Math.sin(u) * r;
+//   const z = Math.sin(v / 2) * 2 * r;
+//   const y = (Math.sin(u * 4 * Math.PI) + Math.cos(v * 2 * Math.PI)) * 2.8;
+  
+//   // return new THREE.Vector3(x, y, z);
+//   return target.set(x, y, z);
+// }
+
 // needs to accept and modify a Vector3 instead of returning a new one??
 // look at constructor https://github.com/mrdoob/three.js/blob/master/examples/jsm/geometries/ParametricGeometry.js
-const radialWave = function(u, v, target) {
-  const r = 50;
-  
-  const x = Math.sin(u) * r;
-  const z = Math.sin(v / 2) * 2 * r;
-  const y = (Math.sin(u * 4 * Math.PI) + Math.cos(v * 2 * Math.PI)) * 2.8;
-  
-  // return new THREE.Vector3(x, y, z);
-  return target.set(x, y, z);
-};
+function randomFlatSurface(u, v, target) {
+  // For now, switching coordinates to match three.js default axes
+  // let x = Math.random();
+  // let y = Math.random();
+  let y = (0.2 * Math.random()) - 0.1;
+  return target.set( u, y, v )
+}
 
+// needs to accept and modify a Vector3 instead of returning a new one??
+// look at constructor https://github.com/mrdoob/three.js/blob/master/examples/jsm/geometries/ParametricGeometry.js
+function alpineFunction(u, v, target) {
+  // domain needs to be [0, 10] X [0, 10]
+  // there HAS to be a better way to do this
+  let domainScale = 10
+  let x = domainScale * u;
+  let z = domainScale * v;
+  // For now, switching coordinates to match three.js default axes
+  let dampingFactor = 0.2;
+  let y = dampingFactor * (Math.sqrt(x) * Math.sin(x)) * (Math.sqrt(z) * Math.sin(z));
+  return target.set( x/domainScale, y/domainScale, z/domainScale )
+}
 
 function createMesh(geom) {
     // geom.applyMatrix4(new THREE.Matrix4().makeTranslation(-25, 0, -25));
     const meshMaterial = new THREE.MeshStandardMaterial({
       color: 0xffffff,
-      emissive: 0x550000,
+      emissive: 0x6b339c,
       metalness: 0.5
-    })
-    
+    });
     meshMaterial.side = THREE.DoubleSide;
     return new THREE.Mesh(geom, meshMaterial)
 }
 
-function basic(u, v, target) {
-  return target.set( u, v, Math.cos( 2*u ) * Math.sin( 2*v ) )
-}
 
+const SURFACE_SCALE = 15;
 
-let mesh = createMesh(new ParametricGeometry(radialWave, 8, 8));
-// let mesh = createMesh(new ParametricGeometry(basic, 8, 8));
+var parametricSurface = new ParametricGeometry(alpineFunction, 30, 30);
+// var parametricSurface = new ParametricGeometry(randomFlatSurface, 8, 8);
+parametricSurface.scale(SURFACE_SCALE, SURFACE_SCALE, SURFACE_SCALE);
+parametricSurface.translate(-(SURFACE_SCALE/2.0), 0, -(SURFACE_SCALE/2.0));
+parametricSurface.rotateY(Math.PI);
+
+let mesh = createMesh(parametricSurface);
+// mesh.position.set(-5, 0, -5);
 scene.add(mesh);
 
+// var edges = new THREE.EdgesGeometry( parametricSurface );
+var edges = new THREE.WireframeGeometry( parametricSurface );
+var lines = new THREE.LineBasicMaterial( { color: 0xffffff, linewidth: 0.5 } );
+var surfaceMesh = new THREE.LineSegments( edges, lines );
+// // boxMesh.rotation.set(40, 0, 40);
+// scene.add( surfaceMesh );
+// surfaceMesh.position.set(-5, 0, -5);
 
 
+// mesh.position.set(-5, 0, -5);
+// surfaceMesh.position.set(-5, 0, -5);
+scene.add(mesh);
+scene.add( surfaceMesh );
 
-camera.lookAt(mesh.position);
+// camera.lookAt(mesh.position);
 controls.update();
 
 
+// zoom on object
+var box3 = new THREE.Box3();
+var size = new THREE.Vector3(); // create once and reuse
 function zoom(thing) {
-  var correctForDepth = 1.3;
+  var correctForDepth = 5.3;
   // this.rotationSpeed = 0.01;
   // var scale = 1;
 
-  // create a helper
-  var helper = new THREE.BoundingBoxHelper(thing);
-  helper.update();
+
+  var boxHelper = new THREE.BoxHelper( mesh );
+  scene.add( boxHelper );
+
+  box3.setFromObject( boxHelper ); // or from mesh, same answer
+  // console.log( box3 );
+
+  box3.getSize( size ); // pass in size so a new Vector3 is not allocated
+  // console.log( size )
+
+  // // create a helper
+  // var helper = new THREE.BoundingBoxHelper(thing);
+  // console.log(helper);
+  // helper.update();
 
   // get the bounding sphere
-  var boundingSphere = helper.box.getBoundingSphere();
+  var boundingSphere = new THREE.Sphere()
+  box3.getBoundingSphere(boundingSphere);
 
   // calculate the distance from the center of the sphere
   // and subtract the radius to get the real distance.
   var center = boundingSphere.center;
   var radius = boundingSphere.radius;
+  console.log(radius);
 
   var distance = center.distanceTo(camera.position) - radius;
-  var realHeight = Math.abs(helper.box.max.y - helper.box.min.y);
+  var realHeight = Math.abs(box3.max.y - box3.min.y);
 
   var fov = 2 * Math.atan(realHeight * correctForDepth / ( 2 * distance )) * ( 180 / Math.PI );
 
@@ -129,7 +207,7 @@ function zoom(thing) {
   camera.updateProjectionMatrix();
 }
 
-zoom(mesh);
+// zoom(mesh);
 
 
 
@@ -143,7 +221,7 @@ zoom(mesh);
 
 // simple light
 const light = new THREE.PointLight(0xFFFFFF, 1, 100);
-light.position.set(5, 5, 5);
+light.position.set(0, 50, 50);
 scene.add(light);
 
 // // lights
@@ -197,125 +275,3 @@ render_scene(scene, camera);
 
 
 
-
-
-
-
-
-// (function init() {
-//   window.addEventListener("resize", onResize, false);
-//   const stats = initStats();
-
-//   const renderer = initRenderer({
-//      antialias: true
-//   });
-
-//  const camera = initCamera();
-//  // camera.position.set(-20, 30, 20)
-//  // camera.lookAt(new THREE.Vector3(0,0,-35))
- 
-//  const scene = new THREE.Scene()
- 
-//   const spotLight = new THREE.DirectionalLight();
-//   spotLight.position = new THREE.Vector3(-20, 250, -50);
-//   spotLight.target.position.x = 30;
-//   spotLight.target.position.y = -40;
-//   spotLight.target.position.z = -20;
-//   spotLight.intensity = 0.3
-//   scene.add(spotLight);
-  
-//   let step = 0;
-  
-//   radialWave = function(u, v) {
-//      const r = 50;
-     
-//      const x = Math.sin(u) * r;
-//      const z = Math.sin(v / 2) * 2 * r;
-//      const y = (Math.sin(u * 4 * Math.PI) + Math.cos(v * 2 * Math.PI)) * 2.8;
-     
-//      return new THREE.Vector3(x, y, z);
-//   };
-  
-//   let mesh = createMesh(new THREE.ParametricGeometry(radialWave, 120, 120, false));
-//   scene.add(mesh);
-  
-//   render();
-
-//   function createMesh(geom) {
-//      geom.applyMatrix(new THREE.Matrix4().makeTranslation(-25, 0, -25));
-//      const meshMaterial = new THREE.MeshStandardMaterial({
-//         color: 0xffffff,
-//         emissive: 0x550000,
-//         metalness: 0.5
-//      })
-     
-//      meshMaterial.side = THREE.DoubleSide;
-//      return new THREE.Mesh(geom, meshMaterial)
-//   }
-  
-//   function render() {
-//      stats.update();
-//      mesh.rotation.y = step += 0.01;
-//      mesh.rotation.x = step;
-//      requestAnimationFrame(render);
-//      renderer.render(scene, camera);
-//   }
-
-//   function initStats() {
-//      var stats = new Stats();
-//      stats.setMode(0);
-     
-//      document.getElementById("stats").appendChild(stats.domElement);
-//      return stats;
-//   }
-
-//   function onResize() {
-//      width = window.innerWidth;
-//      height = window.innerHeight;
-//      camera.aspect = width / height;
-//      camera.updateProjectionMatrix();
-//      renderer.setSize(width, height);
-//   }
-// })();
-
-// /**
-// * Renderer initialization function
-// *
-// * @param Additional Properties to pass to renderer
-// */
-// function initRenderer(additionalProperties) {
-//   const props =
-//      typeof additionalProperties !== "undefined" && additionalProperties
-//         ? additionalProperties
-//         : {};
-//   const renderer = new THREE.WebGLRenderer(props);
-
-//   renderer.setClearColor(new THREE.Color(0x000000));
-//   renderer.setSize(window.innerWidth, window.innerHeight);
-//   renderer.shadowMap.enabled = true;
-//   document.getElementById("output").appendChild(renderer.domElement);
-//   return renderer;
-// }
-
-// /**
-// * Camera initialization functin
-// *
-// * @param {THREE.Vector3} [initialPosition]
-// */
-// function initCamera(initialPosition) {
-//   const position =
-//      initialPosition !== undefined
-//         ? initialPosition
-//         : new THREE.Vector3(-30, 40, 30);
-//   const camera = new THREE.PerspectiveCamera(
-//      45,
-//      window.innerWidth / window.innerHeight,
-//      0.1,
-//      1000
-//   );
-
-//   camera.position.copy(position);
-//   camera.lookAt(new THREE.Vector3(0, 0, 0));
-
-//   return camera;
-// }
