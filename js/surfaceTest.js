@@ -1,6 +1,6 @@
 import * as THREE from "three";
-import { ParametricGeometry } from 'https://unpkg.com/three@0.140.2/examples/jsm/geometries/ParametricGeometry.js';
-import { OrbitControls } from 'https://unpkg.com/three@0.140.2/examples/jsm/controls/OrbitControls.js';
+import { ParametricGeometry } from "https://unpkg.com/three@0.140.2/examples/jsm/geometries/ParametricGeometry.js";
+import { OrbitControls } from "https://unpkg.com/three@0.140.2/examples/jsm/controls/OrbitControls.js";
 // import { TrackballControls } from "../node_modules/three/examples/jsm/controls/TrackballControls.js";
 
 
@@ -36,10 +36,15 @@ controls.update();
 
 
 // helpers
-const ADJUST_VISUALLY = 3;
-const axesHelper = new THREE.AxesHelper( 2 );
-axesHelper.position.set(0, 3, 0);
-scene.add( axesHelper );
+const ADJUST_VISUALLY = 0;
+const axesHelper = new THREE.AxesHelper(4);
+axesHelper.position.set(0, ADJUST_VISUALLY, 0);
+scene.add(axesHelper);
+
+const helper = new THREE.GridHelper(20, 10);
+// helper.rotation.x = Math.PI / 2;
+scene.add( helper );
+
 
 
 
@@ -118,17 +123,92 @@ function alpineFunction(u, v, target) {
   let x = domainScale * u;
   let z = domainScale * v;
   // For now, switching coordinates to match three.js default axes
-  let dampingFactor = 0.2;
+  let dampingFactor = 0.6;
   let y = dampingFactor * (Math.sqrt(x) * Math.sin(x)) * (Math.sqrt(z) * Math.sin(z));
   return target.set( x/domainScale, y/domainScale, z/domainScale )
 }
 
+function rippleFunction(u, v, target) {
+  // domain needs to be [0, 10] X [0, 10]
+  // there HAS to be a better way to do this
+  let domainScale = 5
+  let offset = 2.5
+  let x = (domainScale * u) - offset;
+  let z = (domainScale * v) - offset;
+  // For now, switching coordinates to match three.js default axes
+  // let dampingFactor = 0.4;
+
+  let y = Math.sin(10*(x**2+z**2))/10
+  // let y = dampingFactor * (Math.sqrt(x) * Math.sin(x)) * (Math.sqrt(z) * Math.sin(z));
+
+  return target.set( x/domainScale, y/domainScale, z/domainScale )
+  // return target.set( x, y, z )
+}
+
+function parabolicFunction(u, v, target) {
+  // domain needs to be [0, 10] X [0, 10]
+  // there HAS to be a better way to do this
+  let domainScale = 8;
+  let offset = 0.5;
+  let x = (domainScale * u) - (offset*domainScale);
+  let z = (domainScale * v) - (offset*domainScale);
+  // For now, switching coordinates to match three.js default axes
+
+  let dampingFactor = 0.2;
+  let y = dampingFactor * (x**2 + z**2)
+  // let y = dampingFactor * (Math.sqrt(x) * Math.sin(x)) * (Math.sqrt(z) * Math.sin(z));
+
+  return target.set( x/domainScale + offset, y/domainScale, z/domainScale + offset )
+  // return target.set( x, y, z )
+}
+
+function saddleFunction(u, v, target) {
+  // domain needs to be [0, 10] X [0, 10]
+  // there HAS to be a better way to do this
+  let domainScale = 8;
+  let offset = 0.5;
+  let x = (domainScale * u) - (offset*domainScale);
+  let z = (domainScale * v) - (offset*domainScale);
+  // For now, switching coordinates to match three.js default axes
+
+  let dampingFactor = 0.2;
+  let y = dampingFactor * (x**2 - z**2)
+  // let y = dampingFactor * (Math.sqrt(x) * Math.sin(x)) * (Math.sqrt(z) * Math.sin(z));
+
+  return target.set( x/domainScale + offset, y/domainScale, z/domainScale + offset )
+  // return target.set( x, y, z )
+}
+
+function kleinBottle(u, v, target) {
+
+  u *= Math.PI;
+  v *= 2 * Math.PI;
+
+  u = u * 2;
+  let x, z;
+  if ( u < Math.PI ) {
+    x = 3 * Math.cos(u) * ( 1 + Math.sin( u ) ) + ( 2 * ( 1 - Math.cos( u ) / 2 ) ) * Math.cos( u ) * Math.cos( v );
+    z = - 8 * Math.sin(u) - 2 * ( 1 - Math.cos( u ) / 2 ) * Math.sin( u ) * Math.cos( v );
+  } else {
+    x = 3 * Math.cos(u) * ( 1 + Math.sin( u ) ) + ( 2 * ( 1 - Math.cos( u ) / 2 ) ) * Math.cos( v + Math.PI );
+    z = - 8 * Math.sin(u);
+  }
+  let y = - 2 * ( 1 - Math.cos(u) / 2 ) * Math.sin( v );
+
+  target.set(x, y, z);
+
+}
+
 function createMesh(geom) {
     // geom.applyMatrix4(new THREE.Matrix4().makeTranslation(-25, 0, -25));
-    const meshMaterial = new THREE.MeshStandardMaterial({
-      color: 0xffffff,
-      emissive: 0x6b339c,
-      metalness: 0.5
+    const meshMaterial = new THREE.MeshNormalMaterial({
+      // color: 0xffffff,
+      // emissive: 0xb848b6,
+      // metalness: 
+      // shininess: 25,
+      transparent: true,
+      // opacity: 0.7,
+      flatShading: true
     });
     meshMaterial.side = THREE.DoubleSide;
     return new THREE.Mesh(geom, meshMaterial)
@@ -137,75 +217,84 @@ function createMesh(geom) {
 
 const SURFACE_SCALE = 15;
 
-var parametricSurface = new ParametricGeometry(alpineFunction, 30, 30);
-// var parametricSurface = new ParametricGeometry(randomFlatSurface, 8, 8);
+var parametricSurface = new ParametricGeometry(alpineFunction, 10, 10);
+// var parametricSurface = new ParametricGeometry(saddleFunction, 10, 10);
+// var parametricSurface = new ParametricGeometry(kleinBottle, 30, 30);
 parametricSurface.scale(SURFACE_SCALE, SURFACE_SCALE, SURFACE_SCALE);
 parametricSurface.translate(-(SURFACE_SCALE/2.0), 0, -(SURFACE_SCALE/2.0));
 parametricSurface.rotateY(Math.PI);
 
 let mesh = createMesh(parametricSurface);
-// mesh.position.set(-5, 0, -5);
-scene.add(mesh);
 
 // var edges = new THREE.EdgesGeometry( parametricSurface );
 var edges = new THREE.WireframeGeometry( parametricSurface );
-var lines = new THREE.LineBasicMaterial( { color: 0xffffff, linewidth: 0.5 } );
-var surfaceMesh = new THREE.LineSegments( edges, lines );
+var lines = new THREE.LineBasicMaterial( { color: 0xffffff, linewidth: 1 } );
+var wireframeMesh = new THREE.LineSegments( edges, lines );
 // // boxMesh.rotation.set(40, 0, 40);
 // scene.add( surfaceMesh );
 // surfaceMesh.position.set(-5, 0, -5);
 
 
 // mesh.position.set(-5, 0, -5);
-// surfaceMesh.position.set(-5, 0, -5);
+// wireframeMesh.position.set(-5, 0, -5);
 scene.add(mesh);
-scene.add( surfaceMesh );
+scene.add(wireframeMesh);
 
 // camera.lookAt(mesh.position);
 controls.update();
 
 
-// zoom on object
-var box3 = new THREE.Box3();
-var size = new THREE.Vector3(); // create once and reuse
-function zoom(thing) {
-  var correctForDepth = 5.3;
-  // this.rotationSpeed = 0.01;
-  // var scale = 1;
+// rescale
+function adjustMeshScale() {
 
-
-  var boxHelper = new THREE.BoxHelper( mesh );
-  scene.add( boxHelper );
-
-  box3.setFromObject( boxHelper ); // or from mesh, same answer
-  // console.log( box3 );
-
-  box3.getSize( size ); // pass in size so a new Vector3 is not allocated
-  // console.log( size )
-
-  // // create a helper
-  // var helper = new THREE.BoundingBoxHelper(thing);
-  // console.log(helper);
-  // helper.update();
-
-  // get the bounding sphere
-  var boundingSphere = new THREE.Sphere()
-  box3.getBoundingSphere(boundingSphere);
-
-  // calculate the distance from the center of the sphere
-  // and subtract the radius to get the real distance.
-  var center = boundingSphere.center;
-  var radius = boundingSphere.radius;
-  console.log(radius);
-
-  var distance = center.distanceTo(camera.position) - radius;
-  var realHeight = Math.abs(box3.max.y - box3.min.y);
-
-  var fov = 2 * Math.atan(realHeight * correctForDepth / ( 2 * distance )) * ( 180 / Math.PI );
-
-  camera.fov = fov;
-  camera.updateProjectionMatrix();
 }
+
+
+
+
+
+
+// // zoom on object
+// var box3 = new THREE.Box3();
+// var size = new THREE.Vector3(); // create once and reuse
+// function zoom(thing) {
+//   var correctForDepth = 5.3;
+//   // this.rotationSpeed = 0.01;
+//   // var scale = 1;
+
+
+//   var boxHelper = new THREE.BoxHelper( mesh );
+//   scene.add( boxHelper );
+
+//   box3.setFromObject( boxHelper ); // or from mesh, same answer
+//   // console.log( box3 );
+
+//   box3.getSize( size ); // pass in size so a new Vector3 is not allocated
+//   // console.log( size )
+
+//   // // create a helper
+//   // var helper = new THREE.BoundingBoxHelper(thing);
+//   // console.log(helper);
+//   // helper.update();
+
+//   // get the bounding sphere
+//   var boundingSphere = new THREE.Sphere()
+//   box3.getBoundingSphere(boundingSphere);
+
+//   // calculate the distance from the center of the sphere
+//   // and subtract the radius to get the real distance.
+//   var center = boundingSphere.center;
+//   var radius = boundingSphere.radius;
+//   console.log(radius);
+
+//   var distance = center.distanceTo(camera.position) - radius;
+//   var realHeight = Math.abs(box3.max.y - box3.min.y);
+
+//   var fov = 2 * Math.atan(realHeight * correctForDepth / ( 2 * distance )) * ( 180 / Math.PI );
+
+//   camera.fov = fov;
+//   camera.updateProjectionMatrix();
+// }
 
 // zoom(mesh);
 
@@ -221,30 +310,8 @@ function zoom(thing) {
 
 // simple light
 const light = new THREE.PointLight(0xFFFFFF, 1, 100);
-light.position.set(0, 50, 50);
+light.position.set(-10, 50, 50);
 scene.add(light);
-
-// // lights
-// const lights = [];
-// const lightValues = [
-//   {colour: 0x14D14A, intensity: 8, dist: 12, x: 1, y: 0, z: 8},
-//   {colour: 0xBE61CF, intensity: 6, dist: 12, x: -2, y: 1, z: -10},
-//   {colour: 0x00FFFF, intensity: 3, dist: 10, x: 0, y: 10, z: 1},
-//   {colour: 0x00FF00, intensity: 6, dist: 12, x: 0, y: -10, z: -1},
-//   {colour: 0x16A7F5, intensity: 6, dist: 12, x: 10, y: 3, z: 0},
-//   {colour: 0x90F615, intensity: 6, dist: 12, x: -10, y: -1, z: 0}
-// ];
-// for (let i=0; i<6; i++) {
-//   lights[i] = new THREE.PointLight(
-//     lightValues[i]["colour"], 
-//     lightValues[i]["intensity"], 
-//     lightValues[i]["dist"]);
-//   lights[i].position.set(
-//     lightValues[i]["x"], 
-//     lightValues[i]["y"], 
-//     lightValues[i]["z"]);
-//   scene.add(lights[i]);
-// }
 
 
 // main rendering function
