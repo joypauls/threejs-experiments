@@ -29,9 +29,13 @@ camera.position.set(50, 30, 20);
 const renderer = new THREE.WebGLRenderer({antialias: true});
 renderer.setClearColor("#1a1c1b");
 renderer.setSize(window.innerWidth, window.innerHeight);
-document.body.appendChild(renderer.domElement);
+renderer.setPixelRatio( window.devicePixelRatio );
+const container = document.getElementById("container");
+container.appendChild(renderer.domElement);
 
-const controls = new OrbitControls( camera, renderer.domElement );
+
+// controls
+const controls = new OrbitControls(camera, renderer.domElement);
 controls.update();
 
 
@@ -217,7 +221,7 @@ function createMesh(geom) {
 
 const SURFACE_SCALE = 15;
 
-var parametricSurface = new ParametricGeometry(alpineFunction, 10, 10);
+var parametricSurface = new ParametricGeometry(alpineFunction, 20, 20);
 // var parametricSurface = new ParametricGeometry(saddleFunction, 10, 10);
 // var parametricSurface = new ParametricGeometry(kleinBottle, 30, 30);
 parametricSurface.scale(SURFACE_SCALE, SURFACE_SCALE, SURFACE_SCALE);
@@ -238,7 +242,7 @@ var wireframeMesh = new THREE.LineSegments( edges, lines );
 // mesh.position.set(-5, 0, -5);
 // wireframeMesh.position.set(-5, 0, -5);
 scene.add(mesh);
-scene.add(wireframeMesh);
+// scene.add(wireframeMesh);
 
 // camera.lookAt(mesh.position);
 controls.update();

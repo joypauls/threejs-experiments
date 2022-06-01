@@ -1,7 +1,24 @@
 body {
-  margin: 0px;
+  /* margin: 0px; */
+  /* padding-top: 3rem; */
   height: 100vh;
 }
+
 canvas {
-  display: block;
+  width: 100vw;
+  height: 100vh;
+  position: absolute;
+  top: 0;
+  left: 0;
+  /* z-index: -9999; */
+  padding-top: 3rem;
 }
+
+.navbar {
+  min-height: unset;
+  height: 3rem;
+}
+
+/* #container {
+  padding-top: 3rem;
+} */
